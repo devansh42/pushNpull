@@ -25,13 +25,15 @@ func (s *server) PushHandler(wr http.ResponseWriter, r *http.Request) {
 	jwr.Encode(&StockPrice{ // Initial response
 		Price: s.getStockPriceFromDB(),
 	})
-
-	for err == nil {
+	var ch = make(chan struct{})
+	s.registerNewClient(ch)
+	for range ch {
 		err = jwr.Encode(&StockPrice{
-			Price: s.getOnlyLatestPriceFromDB(),
+			Price: s.getStockPriceFromDB(),
 		})
 		if err != nil {
 			log.Printf("closing connection due to %v", err)
+			s.removeClient(ch)
 			break
 		}
 		flusher.Flush()
